@@ -1,3 +1,19 @@
+from flask import Flask, request
+
+app = Flask(__name__)
+CONFIRMATION_TOKEN = "af11f5df"  # Замените на ваш токен!
+
+@app.route('/callback', methods=['POST'])
+def callback():
+    data = request.json
+    if data.get('type') == 'confirmation':
+        return CONFIRMATION_TOKEN  # Возвращаем строку!
+    return 'ok'  # Для других запросов
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)  # Важно: host='0.0.0.0'!
+
+
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import requests
