@@ -13,47 +13,38 @@ def callback():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)  # Важно: host='0.0.0.0'!
 
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-import vk_api
-from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-import requests
-from telegram import Bot, InputFile
+# Токен вашего бота (замените на свой)
+TOKEN = "7746859733:AAFxsCqRDCAXi2iy3ofZ-v20WYaiXoegPJg"
 
-# Настройки
-VK_TOKEN = "vk1.a.Z1IGf-BPMZUdGASE3_B6B8aX3nfuPr9CnVHfo5kMTMy8g_beismhyI1vr2z-v0ucXQUaDrqzdC9dSMEUN1ZgL-5gmRc72enBln_ZxUSWqQHO5BuCrhtPOFQkJvLOUCR12P_XFLyLblkSRIInpEMmCkQehyulmr6n1YyT71DH8wc4Pw0rQORt8FCiqQQFo6GxgqGx3ROmum7EKNhLArvTQA"
-VK_GROUP_ID = "231360270"
-TG_TOKEN = "7746859733:AAFxsCqRDCAXi2iy3ofZ-v20WYaiXoegPJg"
+# Обработчик команды /start
+def start(update: Update, context: CallbackContext) -> None:
+    user = update.effective_user
+    update.message.reply_text(f"Привет, {user.first_name}! Я простой бот. Напиши мне что-нибудь, и я повторю.")
 
-# Инициализация ВК-бота
-vk_session = vk_api.VkApi(token=VK_TOKEN)
-longpoll = VkBotLongPoll(vk_session, VK_GROUP_ID)
+# Обработчик текстовых сообщений
+def echo(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text(update.message.text)
 
-# Инициализация Telegram-бота
-tg_bot = Bot(token=TG_TOKEN)
+def main() -> None:
+    # Создаем объект Updater и передаем ему токен бота
+    updater = Updater(TOKEN)
 
-def download_audio(url):
-    return requests.get(url).content
+    # Получаем диспетчер для регистрации обработчиков
+    dispatcher = updater.dispatcher
 
-for event in longpoll.listen():
-    if event.type == VkBotEventType.MESSAGE_NEW:
-        msg = event.object.message
-        user_id = msg["from_id"]
-        
-        if "attachments" in msg:
-            for att in msg["attachments"]:
-                if att["type"] == "audio":
-                    audio_url = att["audio"]["url"]
-                    title = f"{att['audio']['artist']} - {att['audio']['title']}"
-                    
-                    # Скачиваем и отправляем в Telegram
-                    audio_data = download_audio(audio_url)
-                    tg_bot.send_audio(
-                        chat_id=user_id,  # или любой другой chat_id
-                        audio=InputFile(audio_data, filename=f"{title}.mp3"),
-                        title=title
-                    )
-                    vk_session.method("messages.send", {
-                        "user_id": user_id,
-                        "message": "🎵 Аудио отправлено в Telegram!",
-                        "random_id": 0
-                    })
+    # Регистрируем обработчики команд и сообщений
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
+    # Запускаем бота
+    updater.start_polling()
+    print("Бот запущен...")
+
+    # Останавливаем бота при нажатии Ctrl+C
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
